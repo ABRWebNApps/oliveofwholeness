@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 
 export function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <nav className="bg-white border-b border-border sticky top-0 z-50">
@@ -29,30 +29,62 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               Home
             </Link>
-            <Link href="/about" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/about"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               About Us
             </Link>
-            <Link href="/services" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/services"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               Services
             </Link>
-            <Link href="/resources" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/book"
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Book a Session
+            </Link>
+            <Link
+              href="/resources"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               Resources
             </Link>
-            <Link href="/community" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/community"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               Community
             </Link>
-            <Link href="/contact" className="text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/contact"
+              className="text-foreground hover:text-primary transition-colors"
+            >
               Contact
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)}>
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -83,6 +115,13 @@ export function Navigation() {
                 Services
               </Link>
               <Link
+                href="/book"
+                className="block px-3 py-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Book a Session
+              </Link>
+              <Link
                 href="/resources"
                 className="block px-3 py-2 text-foreground hover:text-primary transition-colors"
                 onClick={() => setIsOpen(false)}
@@ -108,5 +147,5 @@ export function Navigation() {
         )}
       </div>
     </nav>
-  )
+  );
 }
