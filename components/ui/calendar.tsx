@@ -41,7 +41,7 @@ function Calendar({
         day: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
         day_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-12 w-12 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary transition-colors rounded-xl"
+          "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary transition-colors rounded-xl"
         ),
         range_start: "range-start",
         range_end: "range-end",

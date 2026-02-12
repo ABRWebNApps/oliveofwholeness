@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: availability, error: availError } = await supabase
     .from("availability_settings")
     .select("*")
@@ -17,18 +17,63 @@ export async function GET() {
     .select("*")
     .order("blackout_date", { ascending: true });
 
-  if (availError || configError || blackoutError) {
+  const { data: overrides, error: overridesError } = await supabase
+    .from("availability_overrides")
+    .select("*")
+    .order("override_date", { ascending: true });
+
+  if (availError || configError || blackoutError || overridesError) {
     return NextResponse.json(
       { error: "Failed to fetch settings" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ availability, configs, blackout });
+  return NextResponse.json({ availability, configs, blackout, overrides });
+}
+
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const body = await request.json();
+  const { override_date, start_time, end_time, is_available } = body;
+
+  const { error } = await supabase.from("availability_overrides").upsert({
+    override_date,
+    start_time,
+    end_time,
+    is_available,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "ID required" }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("availability_overrides")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
 
 export async function PATCH(request: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const body = await request.json();
   const { type, id, value, key } = body;
 

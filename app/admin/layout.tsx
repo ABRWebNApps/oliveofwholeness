@@ -1,6 +1,7 @@
 "use client";
 
 import AdminProtection from "@/components/admin-protection";
+import { AdminNav } from "@/components/admin-nav";
 import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
@@ -16,5 +17,12 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  return <AdminProtection>{children}</AdminProtection>;
+  return (
+    <AdminProtection>
+      <div className="min-h-screen bg-background">
+        <AdminNav />
+        <main>{children}</main>
+      </div>
+    </AdminProtection>
+  );
 }
