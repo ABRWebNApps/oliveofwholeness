@@ -49,6 +49,7 @@ export function BookingWidget() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     name: "",
@@ -69,6 +70,28 @@ export function BookingWidget() {
       }
     }
     fetchTypes();
+  }, []);
+
+  // Fetch Available Dates from Admin Settings
+  useEffect(() => {
+    async function fetchAvailableDates() {
+      try {
+        const res = await fetch("/api/admin/availability");
+        if (!res.ok) throw new Error("Failed to load availability");
+        const data = await res.json();
+
+        // Extract dates that are marked as available
+        const dates = new Set(
+          (data.availability_dates || [])
+            .filter((d: any) => d.is_available)
+            .map((d: any) => d.date)
+        );
+        setAvailableDates(dates);
+      } catch (error) {
+        console.error("Could not load available dates:", error);
+      }
+    }
+    fetchAvailableDates();
   }, []);
 
   // Fetch Availability when Type or Date changes
@@ -201,7 +224,24 @@ export function BookingWidget() {
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  disabled={(date) => date < startOfToday()}
+                  disabled={(date) => {
+                    const dateStr = format(date, "yyyy-MM-dd");
+                    const isPast = date < startOfToday();
+                    const isNotAvailable = !availableDates.has(dateStr);
+                    return isPast || isNotAvailable;
+                  }}
+                  modifiers={{
+                    available: (date) =>
+                      availableDates.has(format(date, "yyyy-MM-dd")),
+                  }}
+                  modifiersStyles={{
+                    available: {
+                      backgroundColor: "rgb(34 197 94 / 0.15)",
+                      color: "rgb(22 163 74)",
+                      fontWeight: "bold",
+                      border: "2px solid rgb(34 197 94 / 0.3)",
+                    },
+                  }}
                   className="p-0"
                 />
               </div>

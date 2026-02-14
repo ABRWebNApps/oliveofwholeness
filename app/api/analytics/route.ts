@@ -1,17 +1,39 @@
-// app/api/analytics/route.ts
 import { NextResponse } from "next/server";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
-// Initialize the Analytics Data client
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON!),
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-});
-
-const propertyId = process.env.GA4_PROPERTY_ID; // Your GA4 Property ID
-
 export async function GET() {
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+
+  // Default empty data structure
+  const emptyData = {
+    pageViews: [],
+    users: [],
+    topPages: [],
+    deviceTypes: [],
+    clickEvents: [],
+    totalUsers: 0,
+    totalSessions: 0,
+    totalPageViews: 0,
+    totalClicks: 0,
+    avgSessionDuration: "0m 0s",
+    bounceRate: 0,
+    newUsers: 0,
+  };
+
+  // Check if credentials exist
+  if (!propertyId || !credentialsJson || !projectId) {
+    console.warn("GA4 credentials missing, returning empty analytics data");
+    return NextResponse.json(emptyData);
+  }
+
   try {
+    const analyticsDataClient = new BetaAnalyticsDataClient({
+      credentials: JSON.parse(credentialsJson),
+      projectId: projectId,
+    });
+
     // Get date range (last 30 days)
     const endDate = new Date();
     const startDate = new Date();
@@ -164,14 +186,13 @@ export async function GET() {
       avgSessionDuration: formatDuration(avgSessionDurationSeconds),
       bounceRate,
       newUsers,
+      clickEvents: [], // Added missing field
     };
 
     return NextResponse.json(analyticsData);
   } catch (error) {
     console.error("Analytics API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch analytics data" },
-      { status: 500 }
-    );
+    // Return empty data on error instead of 500 to keep dashboard working
+    return NextResponse.json(emptyData);
   }
 }

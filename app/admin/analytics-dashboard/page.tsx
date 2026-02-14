@@ -1,7 +1,5 @@
 "use client";
 
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -76,14 +74,12 @@ export default function AnalyticsDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading analytics data...</p>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -91,7 +87,6 @@ export default function AnalyticsDashboard() {
   if (error) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <p className="text-red-500 mb-4">Error: {error}</p>
@@ -103,15 +98,12 @@ export default function AnalyticsDashboard() {
             </button>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-
       {/* Header */}
       <section className="bg-gradient-to-b from-secondary/20 to-background py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -389,8 +381,6 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

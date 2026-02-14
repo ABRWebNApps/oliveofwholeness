@@ -3,48 +3,69 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: availability, error: availError } = await supabase
-    .from("availability_settings")
+
+  // Fetch from the new simplified available_dates table
+  const { data: dates, error } = await supabase
+    .from("available_dates")
     .select("*")
-    .order("day_of_week", { ascending: true });
+    .order("date", { ascending: true });
 
-  const { data: configs, error: configError } = await supabase
-    .from("booking_configs")
-    .select("*");
-
-  const { data: blackout, error: blackoutError } = await supabase
-    .from("blackout_dates")
-    .select("*")
-    .order("blackout_date", { ascending: true });
-
-  const { data: overrides, error: overridesError } = await supabase
-    .from("availability_overrides")
-    .select("*")
-    .order("override_date", { ascending: true });
-
-  if (availError || configError || blackoutError || overridesError) {
+  if (error) {
+    console.error("Error fetching available dates:", error);
     return NextResponse.json(
-      { error: "Failed to fetch settings" },
+      { error: "Failed to fetch availability", availability_dates: [] },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ availability, configs, blackout, overrides });
+  return NextResponse.json({ availability_dates: dates || [] });
 }
 
 export async function POST(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const { override_date, start_time, end_time, is_available } = body;
+  const { date, is_available } = body;
 
-  const { error } = await supabase.from("availability_overrides").upsert({
-    override_date,
-    start_time,
-    end_time,
-    is_available,
-  });
+  if (!date) {
+    return NextResponse.json({ error: "Date required" }, { status: 400 });
+  }
+
+  // Insert or update the date
+  const { error } = await supabase.from("available_dates").upsert(
+    {
+      date,
+      is_available: is_available !== false, // default to true if not specified
+    },
+    {
+      onConflict: "date",
+    }
+  );
 
   if (error) {
+    console.error("Error adding/updating date:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const body = await request.json();
+  const { date, is_available } = body;
+
+  if (!date) {
+    return NextResponse.json({ error: "Date required" }, { status: 400 });
+  }
+
+  // Update the specific date
+  const { error } = await supabase
+    .from("available_dates")
+    .update({ is_available })
+    .eq("date", date);
+
+  if (error) {
+    console.error("Error updating date:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -61,36 +82,13 @@ export async function DELETE(request: Request) {
   }
 
   const { error } = await supabase
-    .from("availability_overrides")
+    .from("available_dates")
     .delete()
     .eq("id", id);
 
   if (error) {
+    console.error("Error deleting date:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true });
-}
-
-export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const body = await request.json();
-  const { type, id, value, key } = body;
-
-  if (type === "availability") {
-    const { error } = await supabase
-      .from("availability_settings")
-      .update({ is_active: value })
-      .eq("id", id);
-    if (error)
-      return NextResponse.json({ error: error.message }, { status: 500 });
-  } else if (type === "config") {
-    const { error } = await supabase
-      .from("booking_configs")
-      .update({ value })
-      .eq("key", key);
-    if (error)
-      return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

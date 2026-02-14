@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AdminNav } from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,9 +21,7 @@ export default async function AdminCommunityPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminNav />
-
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -110,6 +107,6 @@ export default async function AdminCommunityPage() {
           </Card>
         )}
       </div>
-    </div>
+    </>
   );
 }

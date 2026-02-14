@@ -1,15 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  addMinutes,
-  format,
-  parse,
-  startOfDay,
-  endOfDay,
-  isAfter,
-  isBefore,
-  isEqual,
-  parseISO,
-} from "date-fns";
+import { addMinutes, format, parse, isBefore, isEqual } from "date-fns";
 
 export interface TimeSlot {
   startTime: string;
@@ -19,7 +9,20 @@ export interface TimeSlot {
 export async function getAvailableSlots(date: string, typeId: string) {
   const supabase = await createClient();
 
-  // 1. Get Appointment Type
+  // 1. Check if date is marked as available in the new system
+  const { data: availableDate, error: dateError } = await supabase
+    .from("available_dates")
+    .select("*")
+    .eq("date", date)
+    .eq("is_available", true)
+    .single();
+
+  // If date is not marked as available or doesn't exist, return no slots
+  if (dateError || !availableDate) {
+    return [];
+  }
+
+  // 2. Get Appointment Type
   const { data: type, error: typeError } = await supabase
     .from("appointment_types")
     .select("*")
@@ -28,45 +31,7 @@ export async function getAvailableSlots(date: string, typeId: string) {
 
   if (typeError || !type) throw new Error("Invalid appointment type");
 
-  // 2. Check for Availability Overrides (Priority 1)
-  const { data: override, error: overrideError } = await supabase
-    .from("availability_overrides")
-    .select("*")
-    .eq("override_date", date)
-    .single();
-
-  let startTime, endTime;
-
-  if (override) {
-    if (!override.is_available) return []; // Date specifically blocked
-    startTime = override.start_time;
-    endTime = override.end_time;
-  } else {
-    // 3. Fallback to Global Availability (Priority 2)
-    const dayOfWeek = new Date(date).getDay();
-    const { data: availability, error: availError } = await supabase
-      .from("availability_settings")
-      .select("*")
-      .eq("day_of_week", dayOfWeek)
-      .eq("is_active", true)
-      .single();
-
-    if (availError || !availability) return []; // No availability for this day
-
-    // 4. Check Blackout Dates (Priority 3)
-    const { data: blackout, error: blackoutError } = await supabase
-      .from("blackout_dates")
-      .select("*")
-      .eq("blackout_date", date)
-      .single();
-
-    if (blackout) return []; // Date is blacked out
-
-    startTime = availability.start_time;
-    endTime = availability.end_time;
-  }
-
-  // 4. Get Existing Appointments
+  // 3. Get Existing Appointments for this date
   const { data: existingAppointments, error: appointmentsError } =
     await supabase
       .from("appointments")
@@ -74,15 +39,12 @@ export async function getAvailableSlots(date: string, typeId: string) {
       .eq("appointment_date", date)
       .neq("status", "cancelled");
 
-  // 5. Get Config (Buffer)
-  const { data: bufferConfig } = await supabase
-    .from("booking_configs")
-    .select("value")
-    .eq("key", "buffer_minutes")
-    .single();
-  const bufferMinutes = parseInt(bufferConfig?.value || "15");
+  // 4. Define default working hours (9 AM to 5 PM)
+  // You can make this configurable later if needed
+  const startTime = "09:00:00";
+  const endTime = "17:00:00";
 
-  // 6. Generate Slots
+  // 5. Generate Slots
   const slots: TimeSlot[] = [];
   let current = parse(startTime, "HH:mm:ss", new Date(date));
   const end = parse(endTime, "HH:mm:ss", new Date(date));
@@ -99,15 +61,8 @@ export async function getAvailableSlots(date: string, typeId: string) {
       const appStart = parse(app.start_time, "HH:mm:ss", new Date(date));
       const appEnd = parse(app.end_time, "HH:mm:ss", new Date(date));
 
-      // Slot overlaps if:
-      // slotStart < appEnd + buffer AND slotEnd + buffer > appStart
-      const appEndWithBuffer = addMinutes(appEnd, bufferMinutes);
-      const slotEndWithBuffer = addMinutes(slotEnd, bufferMinutes);
-
-      return (
-        isBefore(slotStart, appEndWithBuffer) &&
-        isAfter(slotEndWithBuffer, appStart)
-      );
+      // Slot overlaps if slotStart < appEnd AND slotEnd > appStart
+      return isBefore(slotStart, appEnd) && isBefore(appStart, slotEnd);
     });
 
     if (!isOverlapping) {
@@ -117,8 +72,7 @@ export async function getAvailableSlots(date: string, typeId: string) {
       });
     }
 
-    // Move to next possible slot (increment by duration + buffer or just fixed interval)
-    // Here we increment by duration + buffer to keep things simple or fixed 30m intervals
+    // Move to next slot (30-minute intervals)
     current = addMinutes(current, 30);
   }
 

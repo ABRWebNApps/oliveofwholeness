@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminNav } from "@/components/admin-nav";
 import {
   Card,
   CardContent,
@@ -140,9 +139,7 @@ export default function AdminPostsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminNav />
-
+    <>
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Manage Posts</h1>
@@ -267,6 +264,6 @@ export default function AdminPostsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
