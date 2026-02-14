@@ -19,6 +19,7 @@ export async function getAvailableSlots(date: string, typeId: string) {
 
   // If date is not marked as available or doesn't exist, return no slots
   if (dateError || !availableDate) {
+    console.log(`Date ${date} not found or not available`);
     return [];
   }
 
@@ -41,17 +42,63 @@ export async function getAvailableSlots(date: string, typeId: string) {
 
   // 4. Use configured start/end times from available_dates
   // Fallback to 9-5 if columns are null (though migration sets defaults)
-  const startTime = availableDate.start_time || "09:00:00";
-  const endTime = availableDate.end_time || "17:00:00";
+  let startTime = availableDate.start_time;
+  let endTime = availableDate.end_time;
+
+  // Debug log to see what we got from DB
+  console.log(
+    `[getAvailableSlots] Date: ${date}, DB Start: ${startTime}, DB End: ${endTime}`
+  );
+
+  if (!startTime) {
+    startTime = "09:00:00";
+    console.log(
+      "[getAvailableSlots] start_time missing/null, defaulting to 09:00:00"
+    );
+  }
+  if (!endTime) {
+    endTime = "17:00:00";
+    console.log(
+      "[getAvailableSlots] end_time missing/null, defaulting to 17:00:00"
+    );
+  }
+
+  // Helper to parse time string safely (handles HH:mm and HH:mm:ss)
+  const parseTime = (timeStr: string, baseDate: Date) => {
+    // Try HH:mm:ss first
+    try {
+      if (timeStr.split(":").length === 3) {
+        return parse(timeStr, "HH:mm:ss", baseDate);
+      }
+    } catch (e) {}
+
+    // Try HH:mm
+    try {
+      if (timeStr.split(":").length === 2) {
+        return parse(timeStr, "HH:mm", baseDate);
+      }
+    } catch (e) {}
+
+    // Fallback/Retry
+    return parse(
+      timeStr,
+      timeStr.length === 5 ? "HH:mm" : "HH:mm:ss",
+      baseDate
+    );
+  };
 
   // 5. Generate Slots
   const slots: TimeSlot[] = [];
   // Parse using a reference date (the selected date)
-  let current = parse(startTime, "HH:mm:ss", new Date(date));
-  const end = parse(endTime, "HH:mm:ss", new Date(date));
+  const baseDate = new Date(date);
+  let current = parseTime(startTime, baseDate);
+  const end = parseTime(endTime, baseDate);
 
   // Safety check: if start >= end, return empty
   if (!isBefore(current, end)) {
+    console.log(
+      "[getAvailableSlots] Start time is after end time, returning empty slots"
+    );
     return [];
   }
 
@@ -64,8 +111,8 @@ export async function getAvailableSlots(date: string, typeId: string) {
 
     // Check if slot overlaps with any existing appointment
     const isOverlapping = existingAppointments?.some((app) => {
-      const appStart = parse(app.start_time, "HH:mm:ss", new Date(date));
-      const appEnd = parse(app.end_time, "HH:mm:ss", new Date(date));
+      const appStart = parseTime(app.start_time, baseDate);
+      const appEnd = parseTime(app.end_time, baseDate);
 
       // Slot overlaps if slotStart < appEnd AND slotEnd > appStart
       return isBefore(slotStart, appEnd) && isBefore(appStart, slotEnd);
