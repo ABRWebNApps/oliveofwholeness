@@ -11,7 +11,23 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, Calendar as CalendarIcon, Check, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Loader2,
+  Calendar as CalendarIcon,
+  Check,
+  X,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -19,15 +35,21 @@ interface AvailableDate {
   id: string;
   date: string;
   is_available: boolean;
+  start_time: string;
+  end_time: string;
 }
 
 export default function AvailabilitySettings() {
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date()
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Time configuration state
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("17:00");
+  const [currentDateId, setCurrentDateId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAvailability();
@@ -38,11 +60,8 @@ export default function AvailabilitySettings() {
       const res = await fetch("/api/admin/availability");
       const json = await res.json();
 
-      // Handle both old and new data formats
       if (json.availability_dates) {
         setAvailableDates(json.availability_dates);
-      } else if (json.dates) {
-        setAvailableDates(json.dates);
       } else {
         setAvailableDates([]);
       }
@@ -53,41 +72,66 @@ export default function AvailabilitySettings() {
     }
   };
 
-  const toggleDate = async (date: Date) => {
-    const formattedDate = format(date, "yyyy-MM-dd");
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
 
-    // Check if date already exists
+    setSelectedDate(date);
+    const formattedDate = format(date, "yyyy-MM-dd");
     const existing = availableDates.find((d) => d.date === formattedDate);
+
+    if (existing) {
+      // If already exists, open dialog to edit/remove
+      setCurrentDateId(existing.id);
+      setStartTime(existing.start_time?.substring(0, 5) || "09:00");
+      setEndTime(existing.end_time?.substring(0, 5) || "17:00");
+      setIsDialogOpen(true);
+    } else {
+      // If new, open dialog to add
+      setCurrentDateId(null);
+      setStartTime("09:00");
+      setEndTime("17:00");
+      setIsDialogOpen(true);
+    }
+  };
+
+  const saveAvailability = async () => {
+    if (!selectedDate) return;
 
     try {
       setSaving(true);
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
-      if (existing) {
-        // Toggle existing date
-        await fetch("/api/admin/availability", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            date: formattedDate,
-            is_available: !existing.is_available,
-          }),
-        });
-      } else {
-        // Add new available date
-        await fetch("/api/admin/availability", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            date: formattedDate,
-            is_available: true,
-          }),
-        });
+      // Validate times
+      if (startTime >= endTime) {
+        toast.error("Start time must be before end time");
+        setSaving(false);
+        return;
       }
 
-      fetchAvailability();
-      toast.success("Availability updated");
+      const payload = {
+        date: formattedDate,
+        is_available: true,
+        start_time: startTime,
+        end_time: endTime,
+      };
+
+      const method = currentDateId ? "PATCH" : "POST";
+
+      const res = await fetch("/api/admin/availability", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save");
+
+      await fetchAvailability();
+      setIsDialogOpen(false);
+      toast.success(
+        currentDateId ? "Availability updated" : "Date added to availability"
+      );
     } catch (error) {
-      toast.error("Failed to update availability");
+      toast.error("Failed to save availability");
     } finally {
       setSaving(false);
     }
@@ -99,7 +143,8 @@ export default function AvailabilitySettings() {
       await fetch(`/api/admin/availability?id=${id}`, {
         method: "DELETE",
       });
-      fetchAvailability();
+      await fetchAvailability();
+      setIsDialogOpen(false); // Close dialog if open
       toast.success("Date removed");
     } catch (error) {
       toast.error("Failed to remove date");
@@ -111,10 +156,6 @@ export default function AvailabilitySettings() {
   // Get set of available date strings for calendar highlighting
   const availableDateStrings = new Set(
     availableDates.filter((d) => d.is_available).map((d) => d.date)
-  );
-
-  const unavailableDateStrings = new Set(
-    availableDates.filter((d) => !d.is_available).map((d) => d.date)
   );
 
   if (loading) {
@@ -135,8 +176,8 @@ export default function AvailabilitySettings() {
             Availability Settings
           </h1>
           <p className="text-muted-foreground">
-            Click dates on the calendar to mark them as available or unavailable
-            for bookings.
+            Select dates to set availability hours. Click an existing date to
+            edit times.
           </p>
         </div>
 
@@ -149,7 +190,7 @@ export default function AvailabilitySettings() {
                 Select Dates
               </CardTitle>
               <CardDescription>
-                Click a date to toggle its availability status
+                Click a date to configure available hours
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -157,18 +198,11 @@ export default function AvailabilitySettings() {
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                      toggleDate(date);
-                    }
-                  }}
+                  onSelect={handleDateSelect}
                   className="rounded-2xl border p-4"
                   modifiers={{
                     available: (date) =>
                       availableDateStrings.has(format(date, "yyyy-MM-dd")),
-                    unavailable: (date) =>
-                      unavailableDateStrings.has(format(date, "yyyy-MM-dd")),
                   }}
                   modifiersStyles={{
                     available: {
@@ -176,27 +210,15 @@ export default function AvailabilitySettings() {
                       color: "rgb(22 163 74)",
                       fontWeight: "bold",
                     },
-                    unavailable: {
-                      backgroundColor: "rgb(239 68 68 / 0.2)",
-                      color: "rgb(220 38 38)",
-                      fontWeight: "bold",
-                      textDecoration: "line-through",
-                    },
                   }}
                   disabled={saving}
                 />
               </div>
 
               {/* Legend */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-600"></div>
-                  <span className="text-muted-foreground">Available</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-4 h-4 rounded-full bg-red-500/20 border border-red-600"></div>
-                  <span className="text-muted-foreground">Unavailable</span>
-                </div>
+              <div className="mt-6 flex items-center gap-2 text-sm">
+                <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-600"></div>
+                <span className="text-muted-foreground">Available</span>
               </div>
             </CardContent>
           </Card>
@@ -206,7 +228,7 @@ export default function AvailabilitySettings() {
             <CardHeader>
               <CardTitle>Marked Dates</CardTitle>
               <CardDescription>
-                All dates you've marked as available or unavailable
+                Upcoming available dates and times
               </CardDescription>
             </CardHeader>
             <CardContent className="max-h-[500px] overflow-y-auto">
@@ -223,35 +245,44 @@ export default function AvailabilitySettings() {
                         className="flex items-center justify-between p-3 rounded-xl border bg-card/50 hover:bg-card transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          {item.is_available ? (
-                            <div className="p-2 rounded-lg bg-green-500/10">
-                              <Check className="h-4 w-4 text-green-600" />
-                            </div>
-                          ) : (
-                            <div className="p-2 rounded-lg bg-red-500/10">
-                              <X className="h-4 w-4 text-red-600" />
-                            </div>
-                          )}
+                          <div className="p-2 rounded-lg bg-green-500/10">
+                            <Check className="h-4 w-4 text-green-600" />
+                          </div>
                           <div>
                             <p className="font-semibold text-sm">
                               {format(new Date(item.date), "MMMM d, yyyy")}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.is_available
-                                ? "Available for booking"
-                                : "Unavailable"}
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {item.start_time?.substring(0, 5)} -{" "}
+                              {item.end_time?.substring(0, 5)}
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeDate(item.id)}
-                          disabled={saving}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDate(new Date(item.date));
+                              handleDateSelect(new Date(item.date));
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeDate(item.id);
+                            }}
+                            disabled={saving}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -260,7 +291,7 @@ export default function AvailabilitySettings() {
                   <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p className="text-sm">No dates marked yet</p>
                   <p className="text-xs mt-1">
-                    Click dates on the calendar to get started
+                    Click dates on the calendar to set availability
                   </p>
                 </div>
               )}
@@ -268,6 +299,64 @@ export default function AvailabilitySettings() {
           </Card>
         </div>
       </div>
+
+      {/* Time Configuration Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate
+                ? format(selectedDate, "MMMM d, yyyy")
+                : "Set Availability"}
+            </DialogTitle>
+            <DialogDescription>
+              Set the available hours for this date.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="start-time">Start Time</Label>
+                <Input
+                  id="start-time"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="end-time">End Time</Label>
+                <Input
+                  id="end-time"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            {currentDateId && (
+              <Button
+                variant="destructive"
+                onClick={() => currentDateId && removeDate(currentDateId)}
+                disabled={saving}
+              >
+                Remove
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveAvailability} disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminProtection>
   );
 }

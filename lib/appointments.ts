@@ -39,15 +39,21 @@ export async function getAvailableSlots(date: string, typeId: string) {
       .eq("appointment_date", date)
       .neq("status", "cancelled");
 
-  // 4. Define default working hours (9 AM to 5 PM)
-  // You can make this configurable later if needed
-  const startTime = "09:00:00";
-  const endTime = "17:00:00";
+  // 4. Use configured start/end times from available_dates
+  // Fallback to 9-5 if columns are null (though migration sets defaults)
+  const startTime = availableDate.start_time || "09:00:00";
+  const endTime = availableDate.end_time || "17:00:00";
 
   // 5. Generate Slots
   const slots: TimeSlot[] = [];
+  // Parse using a reference date (the selected date)
   let current = parse(startTime, "HH:mm:ss", new Date(date));
   const end = parse(endTime, "HH:mm:ss", new Date(date));
+
+  // Safety check: if start >= end, return empty
+  if (!isBefore(current, end)) {
+    return [];
+  }
 
   while (
     isBefore(addMinutes(current, type.duration_minutes), end) ||

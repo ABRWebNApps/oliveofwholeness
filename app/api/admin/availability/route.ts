@@ -24,17 +24,19 @@ export async function GET() {
 export async function POST(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const { date, is_available } = body;
+  const { date, is_available, start_time, end_time } = body;
 
   if (!date) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
   }
 
-  // Insert or update the date
+  // Insert or update the date with time fields
   const { error } = await supabase.from("available_dates").upsert(
     {
       date,
       is_available: is_available !== false, // default to true if not specified
+      start_time: start_time || "09:00:00",
+      end_time: end_time || "17:00:00",
     },
     {
       onConflict: "date",
@@ -52,16 +54,21 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const { date, is_available } = body;
+  const { date, is_available, start_time, end_time } = body;
 
   if (!date) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
   }
 
-  // Update the specific date
+  // Update specific fields
+  const updates: any = {};
+  if (is_available !== undefined) updates.is_available = is_available;
+  if (start_time !== undefined) updates.start_time = start_time;
+  if (end_time !== undefined) updates.end_time = end_time;
+
   const { error } = await supabase
     .from("available_dates")
-    .update({ is_available })
+    .update(updates)
     .eq("date", date);
 
   if (error) {
