@@ -50,7 +50,7 @@ export default function NewCommunityPostPage() {
     setImageUrl("");
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImage: (file: File) => Promise<string | null> = async (file) => {
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;

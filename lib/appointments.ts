@@ -40,45 +40,38 @@ export async function getAvailableSlots(date: string, typeId: string) {
       .eq("appointment_date", date)
       .neq("status", "cancelled");
 
-  // 4. Use configured start/end times from available_dates
-  // Fallback to 9-5 if columns are null (though migration sets defaults)
-  let startTime = availableDate.start_time;
-  let endTime = availableDate.end_time;
+  // 4. Determine available ranges
+  // Prefer time_slots, fallback to start_time/end_time columns, then default 9-5
+  let availableRanges: { start: string; end: string }[] = [];
 
-  // Debug log to see what we got from DB
-  console.log(
-    `[getAvailableSlots] Date: ${date}, DB Start: ${startTime}, DB End: ${endTime}`
-  );
-
-  if (!startTime) {
-    startTime = "09:00:00";
+  if (
+    availableDate.time_slots &&
+    Array.isArray(availableDate.time_slots) &&
+    availableDate.time_slots.length > 0
+  ) {
+    availableRanges = availableDate.time_slots;
+  } else if (availableDate.start_time && availableDate.end_time) {
+    availableRanges = [
+      { start: availableDate.start_time, end: availableDate.end_time },
+    ];
+  } else {
+    availableRanges = [{ start: "09:00:00", end: "17:00:00" }];
     console.log(
-      "[getAvailableSlots] start_time missing/null, defaulting to 09:00:00"
-    );
-  }
-  if (!endTime) {
-    endTime = "17:00:00";
-    console.log(
-      "[getAvailableSlots] end_time missing/null, defaulting to 17:00:00"
+      "[getAvailableSlots] No time slots or start/end times found, defaulting to 09:00-17:00"
     );
   }
 
   // Helper to parse time string safely (handles HH:mm and HH:mm:ss)
   const parseTime = (timeStr: string, baseDate: Date) => {
     // Try HH:mm:ss first
-    try {
-      if (timeStr.split(":").length === 3) {
+    if (timeStr.includes(":")) {
+      const parts = timeStr.split(":");
+      if (parts.length === 3) {
         return parse(timeStr, "HH:mm:ss", baseDate);
-      }
-    } catch (e) {}
-
-    // Try HH:mm
-    try {
-      if (timeStr.split(":").length === 2) {
+      } else if (parts.length === 2) {
         return parse(timeStr, "HH:mm", baseDate);
       }
-    } catch (e) {}
-
+    }
     // Fallback/Retry
     return parse(
       timeStr,
@@ -89,45 +82,62 @@ export async function getAvailableSlots(date: string, typeId: string) {
 
   // 5. Generate Slots
   const slots: TimeSlot[] = [];
-  // Parse using a reference date (the selected date)
   const baseDate = new Date(date);
-  let current = parseTime(startTime, baseDate);
-  const end = parseTime(endTime, baseDate);
 
-  // Safety check: if start >= end, return empty
-  if (!isBefore(current, end)) {
-    console.log(
-      "[getAvailableSlots] Start time is after end time, returning empty slots"
-    );
-    return [];
-  }
+  for (const range of availableRanges) {
+    let current = parseTime(range.start, baseDate);
+    const end = parseTime(range.end, baseDate);
 
-  while (
-    isBefore(addMinutes(current, type.duration_minutes), end) ||
-    isEqual(addMinutes(current, type.duration_minutes), end)
-  ) {
-    const slotStart = current;
-    const slotEnd = addMinutes(current, type.duration_minutes);
-
-    // Check if slot overlaps with any existing appointment
-    const isOverlapping = existingAppointments?.some((app) => {
-      const appStart = parseTime(app.start_time, baseDate);
-      const appEnd = parseTime(app.end_time, baseDate);
-
-      // Slot overlaps if slotStart < appEnd AND slotEnd > appStart
-      return isBefore(slotStart, appEnd) && isBefore(appStart, slotEnd);
-    });
-
-    if (!isOverlapping) {
-      slots.push({
-        startTime: format(slotStart, "HH:mm:ss"),
-        endTime: format(slotEnd, "HH:mm:ss"),
-      });
+    // Safety check: if start >= end, return empty
+    if (!isBefore(current, end)) {
+      console.log(
+        `[getAvailableSlots] Range start (${range.start}) is after or equal to end (${range.end}), skipping.`
+      );
+      continue;
     }
 
-    // Move to next slot (30-minute intervals)
-    current = addMinutes(current, 30);
+    while (
+      isBefore(addMinutes(current, type.duration_minutes), end) ||
+      isEqual(addMinutes(current, type.duration_minutes), end)
+    ) {
+      const slotStart = current;
+      const slotEnd = addMinutes(current, type.duration_minutes);
+
+      // Check if slot overlaps with any existing appointment
+      const isOverlapping = existingAppointments?.some((app) => {
+        // Handle potential nulls or malformed data in appointments (though DB constraints should prevent it)
+        if (!app.start_time || !app.end_time) return false;
+
+        const appStart = parseTime(app.start_time, baseDate);
+        const appEnd = parseTime(app.end_time, baseDate);
+
+        // Slot overlaps if slotStart < appEnd AND slotEnd > appStart
+        return isBefore(slotStart, appEnd) && isBefore(appStart, slotEnd);
+      });
+
+      if (!isOverlapping) {
+        // Avoid duplicates if ranges overlap (though admin UI should prevent overlap)
+        const slotCoded = format(slotStart, "HH:mm:ss");
+        if (!slots.some((s) => s.startTime === slotCoded)) {
+          slots.push({
+            startTime: outputFormat(slotStart),
+            endTime: outputFormat(slotEnd),
+          });
+        }
+      }
+
+      // Move to next slot (30-minute intervals)
+      current = addMinutes(current, 30);
+    }
   }
 
+  // Sort slots by start time
+  slots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
   return slots;
+}
+
+// Helper for consistent output format
+function outputFormat(date: Date) {
+  return format(date, "HH:mm:ss");
 }

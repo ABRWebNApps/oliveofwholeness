@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const { date, is_available, start_time, end_time } = body;
+  const { date, is_available, start_time, end_time, time_slots } = body;
 
   if (!date) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     {
       date,
       is_available: is_available !== false, // default to true if not specified
-      start_time: start_time || "09:00:00",
-      end_time: end_time || "17:00:00",
+      start_time: start_time || "09:00:00", // Keep for backward compatibility
+      end_time: end_time || "17:00:00", // Keep for backward compatibility
+      time_slots: time_slots || [],
     },
     {
       onConflict: "date",
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const { date, is_available, start_time, end_time } = body;
+  const { date, is_available, start_time, end_time, time_slots } = body;
 
   if (!date) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
@@ -65,6 +66,7 @@ export async function PATCH(request: Request) {
   if (is_available !== undefined) updates.is_available = is_available;
   if (start_time !== undefined) updates.start_time = start_time;
   if (end_time !== undefined) updates.end_time = end_time;
+  if (time_slots !== undefined) updates.time_slots = time_slots;
 
   const { error } = await supabase
     .from("available_dates")

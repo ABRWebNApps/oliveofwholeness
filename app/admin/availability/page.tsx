@@ -27,16 +27,24 @@ import {
   Check,
   X,
   Clock,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+interface TimeSlot {
+  start: string;
+  end: string;
+}
 
 interface AvailableDate {
   id: string;
   date: string;
   is_available: boolean;
-  start_time: string;
-  end_time: string;
+  start_time?: string;
+  end_time?: string;
+  time_slots?: TimeSlot[];
 }
 
 export default function AvailabilitySettings() {
@@ -47,8 +55,9 @@ export default function AvailabilitySettings() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Time configuration state
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
+    { start: "09:00", end: "17:00" },
+  ]);
   const [currentDateId, setCurrentDateId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,16 +91,48 @@ export default function AvailabilitySettings() {
     if (existing) {
       // If already exists, open dialog to edit/remove
       setCurrentDateId(existing.id);
-      setStartTime(existing.start_time?.substring(0, 5) || "09:00");
-      setEndTime(existing.end_time?.substring(0, 5) || "17:00");
+
+      // Prefer time_slots, fallback to start_time/end_time
+      if (existing.time_slots && existing.time_slots.length > 0) {
+        setTimeSlots(existing.time_slots);
+      } else if (existing.start_time && existing.end_time) {
+        setTimeSlots([
+          {
+            start: existing.start_time.substring(0, 5),
+            end: existing.end_time.substring(0, 5),
+          },
+        ]);
+      } else {
+        setTimeSlots([{ start: "09:00", end: "17:00" }]);
+      }
+
       setIsDialogOpen(true);
     } else {
       // If new, open dialog to add
       setCurrentDateId(null);
-      setStartTime("09:00");
-      setEndTime("17:00");
+      setTimeSlots([{ start: "09:00", end: "17:00" }]);
       setIsDialogOpen(true);
     }
+  };
+
+  const addTimeSlot = () => {
+    setTimeSlots([...timeSlots, { start: "09:00", end: "17:00" }]);
+  };
+
+  const removeTimeSlot = (index: number) => {
+    const newSlots = [...timeSlots];
+    newSlots.splice(index, 1);
+    setTimeSlots(newSlots);
+  };
+
+  const updateTimeSlot = (
+    index: number,
+    field: "start" | "end",
+    value: string
+  ) => {
+    const newSlots = [...timeSlots];
+    newSlots[index] = { ...newSlots[index], [field]: value };
+    setTimeSlots(newSlots);
   };
 
   const saveAvailability = async () => {
@@ -102,17 +143,30 @@ export default function AvailabilitySettings() {
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
       // Validate times
-      if (startTime >= endTime) {
-        toast.error("Start time must be before end time");
+      if (timeSlots.length === 0) {
+        toast.error("At least one time slot is required");
         setSaving(false);
         return;
       }
 
+      for (const slot of timeSlots) {
+        if (slot.start >= slot.end) {
+          toast.error("Start time must be before end time for all slots");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Overlap check (optional but good)
+      // For now, let's just save.
+
       const payload = {
         date: formattedDate,
         is_available: true,
-        start_time: startTime,
-        end_time: endTime,
+        // Keep these for backward compatibility if needed, using the first slot or overall range
+        start_time: timeSlots[0].start,
+        end_time: timeSlots[timeSlots.length - 1].end,
+        time_slots: timeSlots,
       };
 
       const method = currentDateId ? "PATCH" : "POST";
@@ -252,11 +306,25 @@ export default function AvailabilitySettings() {
                             <p className="font-semibold text-sm">
                               {format(new Date(item.date), "MMMM d, yyyy")}
                             </p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {item.start_time?.substring(0, 5)} -{" "}
-                              {item.end_time?.substring(0, 5)}
-                            </p>
+                            <div className="text-xs text-muted-foreground">
+                              {item.time_slots && item.time_slots.length > 0 ? (
+                                item.time_slots.map((slot, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Clock className="w-3 h-3" />
+                                    {slot.start} - {slot.end}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {item.start_time?.substring(0, 5)} -{" "}
+                                  {item.end_time?.substring(0, 5)}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -314,25 +382,61 @@ export default function AvailabilitySettings() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="start-time">Start Time</Label>
-                <Input
-                  id="start-time"
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="end-time">End Time</Label>
-                <Input
-                  id="end-time"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
+            <div className="space-y-4">
+              {timeSlots.map((slot, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">
+                      Slot {index + 1}
+                    </Label>
+                    {timeSlots.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive"
+                        onClick={() => removeTimeSlot(index)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor={`start-time-${index}`}>Start</Label>
+                      <Input
+                        id={`start-time-${index}`}
+                        type="time"
+                        value={slot.start}
+                        onChange={(e) =>
+                          updateTimeSlot(index, "start", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor={`end-time-${index}`}>End</Label>
+                      <Input
+                        id={`end-time-${index}`}
+                        type="time"
+                        value={slot.end}
+                        onChange={(e) =>
+                          updateTimeSlot(index, "end", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={addTimeSlot}
+              >
+                <Plus className="mr-2 h-3 w-3" />
+                Add Time Slot
+              </Button>
             </div>
           </div>
           <DialogFooter className="flex justify-between sm:justify-between">
@@ -342,7 +446,7 @@ export default function AvailabilitySettings() {
                 onClick={() => currentDateId && removeDate(currentDateId)}
                 disabled={saving}
               >
-                Remove
+                Remove Date
               </Button>
             )}
             <div className="flex gap-2">
