@@ -1,17 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: parseInt(process.env.SMTP_PORT || "465") === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendAppointmentStatusEmail(
   toEmail: string,
@@ -25,11 +14,6 @@ export async function sendAppointmentStatusEmail(
     status === "confirmed"
       ? "Appointment Confirmed - Olive of Wholeness"
       : "Appointment Update - Olive of Wholeness";
-
-  const plainText =
-    status === "confirmed"
-      ? `Dear ${customerName},\n\nYour appointment has been successfully confirmed.\n\nDetails:\n- Service: ${serviceName}\n- Date: ${date}\n- Time: ${time}\n\nWe look forward to seeing you.\n\nBest regards,\nOlive of Wholeness`
-      : `Dear ${customerName},\n\nWe regret to inform you that your appointment request has been declined/cancelled.\n\nDetails:\n- Service: ${serviceName}\n- Date: ${date}\n- Time: ${time}\n\nPlease contact us if you have any questions or would like to reschedule.\n\nBest regards,\nOlive of Wholeness`;
 
   const htmlContent =
     status === "confirmed"
@@ -65,21 +49,22 @@ export async function sendAppointmentStatusEmail(
     `;
 
   try {
-    const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_USER}" <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
       to: toEmail.trim(),
-      replyTo: process.env.SMTP_USER,
       subject: subject,
-      text: plainText,
       html: htmlContent,
     });
-    console.log(
-      "Email status: Delivered to provider. MessageId:",
-      info.messageId
-    );
+
+    if (error) {
+      console.error("Resend Error:", error);
+      return false;
+    }
+
+    console.log("Resend status: Sent", data?.id);
     return true;
   } catch (error) {
-    console.error("SMTP Error:", error);
+    console.error("Critical error in sendAppointmentStatusEmail:", error);
     return false;
   }
 }
