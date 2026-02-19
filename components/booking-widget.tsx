@@ -34,6 +34,7 @@ interface AppointmentType {
 interface Slot {
   startTime: string;
   endTime: string;
+  available: boolean;
 }
 
 export function BookingWidget() {
@@ -275,13 +276,19 @@ export function BookingWidget() {
                               ? "default"
                               : "outline"
                           }
+                          disabled={!slot.available}
                           className={cn(
                             "h-10 text-xs font-bold rounded-lg transition-all border",
+                            !slot.available &&
+                              "opacity-50 cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted hover:text-muted-foreground hover:border-border",
                             selectedSlot?.startTime === slot.startTime
                               ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+                              : slot.available &&
+                                  "hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                           )}
-                          onClick={() => setSelectedSlot(slot)}
+                          onClick={() =>
+                            slot.available && setSelectedSlot(slot)
+                          }
                         >
                           {slot.startTime.substring(0, 5)}
                         </Button>

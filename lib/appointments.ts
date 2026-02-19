@@ -4,6 +4,7 @@ import { addMinutes, format, parse, isBefore, isEqual } from "date-fns";
 export interface TimeSlot {
   startTime: string;
   endTime: string;
+  available: boolean;
 }
 
 export async function getAvailableSlots(date: string, typeId: string) {
@@ -81,7 +82,9 @@ export async function getAvailableSlots(date: string, typeId: string) {
   };
 
   // 5. Generate Slots
-  const slots: TimeSlot[] = [];
+  // We want to return ALL slots within the range, but mark them as available/unavailable
+  const slots: { startTime: string; endTime: string; available: boolean }[] =
+    [];
   const baseDate = new Date(date);
 
   for (const range of availableRanges) {
@@ -115,15 +118,14 @@ export async function getAvailableSlots(date: string, typeId: string) {
         return isBefore(slotStart, appEnd) && isBefore(appStart, slotEnd);
       });
 
-      if (!isOverlapping) {
-        // Avoid duplicates if ranges overlap (though admin UI should prevent overlap)
-        const slotCoded = format(slotStart, "HH:mm:ss");
-        if (!slots.some((s) => s.startTime === slotCoded)) {
-          slots.push({
-            startTime: outputFormat(slotStart),
-            endTime: outputFormat(slotEnd),
-          });
-        }
+      // Avoid duplicates if ranges overlap (though admin UI should prevent overlap)
+      const slotCoded = format(slotStart, "HH:mm:ss");
+      if (!slots.some((s) => s.startTime === slotCoded)) {
+        slots.push({
+          startTime: outputFormat(slotStart),
+          endTime: outputFormat(slotEnd),
+          available: !isOverlapping, // True if NO overlap
+        });
       }
 
       // Move to next slot (30-minute intervals)
