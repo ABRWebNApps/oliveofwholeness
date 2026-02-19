@@ -12,11 +12,6 @@ export const metadata: Metadata = {
   description:
     "Guiding people on a journey of emotional healing and spiritual renewal through the love of Christ. Professional therapy services rooted in faith.",
   generator: "v0.app",
-  icons: {
-    icon: "/fav.jpg",
-    shortcut: "/fav.jpg",
-    apple: "/fav.jpg",
-  },
 };
 
 export default function RootLayout({
