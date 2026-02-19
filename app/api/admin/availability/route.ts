@@ -61,20 +61,22 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
   }
 
-  // Update specific fields
-  const updates: any = {};
-  if (is_available !== undefined) updates.is_available = is_available;
-  if (start_time !== undefined) updates.start_time = start_time;
-  if (end_time !== undefined) updates.end_time = end_time;
-  if (time_slots !== undefined) updates.time_slots = time_slots;
-
-  const { error } = await supabase
-    .from("available_dates")
-    .update(updates)
-    .eq("date", date);
+  // Use upsert so it creates the row if it doesn't exist yet
+  const { error } = await supabase.from("available_dates").upsert(
+    {
+      date,
+      is_available: is_available !== false,
+      start_time: start_time || "09:00:00",
+      end_time: end_time || "17:00:00",
+      time_slots: time_slots || [],
+    },
+    {
+      onConflict: "date",
+    }
+  );
 
   if (error) {
-    console.error("Error updating date:", error);
+    console.error("Error upserting date via PATCH:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

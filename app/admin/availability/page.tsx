@@ -177,15 +177,20 @@ export default function AvailabilitySettings() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const msg = errData.error || "Failed to save";
+        console.error("Save availability error:", msg);
+        throw new Error(msg);
+      }
 
       await fetchAvailability();
       setIsDialogOpen(false);
       toast.success(
         currentDateId ? "Availability updated" : "Date added to availability"
       );
-    } catch (error) {
-      toast.error("Failed to save availability");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save availability");
     } finally {
       setSaving(false);
     }
@@ -291,7 +296,8 @@ export default function AvailabilitySettings() {
                   {availableDates
                     .sort(
                       (a, b) =>
-                        new Date(a.date).getTime() - new Date(b.date).getTime()
+                        new Date(a.date + "T00:00:00").getTime() -
+                        new Date(b.date + "T00:00:00").getTime()
                     )
                     .map((item) => (
                       <div
@@ -304,7 +310,10 @@ export default function AvailabilitySettings() {
                           </div>
                           <div>
                             <p className="font-semibold text-sm">
-                              {format(new Date(item.date), "MMMM d, yyyy")}
+                              {format(
+                                new Date(item.date + "T00:00:00"),
+                                "MMMM d, yyyy"
+                              )}
                             </p>
                             <div className="text-xs text-muted-foreground">
                               {item.time_slots && item.time_slots.length > 0 ? (
