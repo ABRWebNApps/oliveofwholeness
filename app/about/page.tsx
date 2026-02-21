@@ -73,13 +73,13 @@ export default function AboutPage() {
   ];
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
-    Autoplay({ delay: 6000, stopOnInteraction: false }),
+    Autoplay({ delay: 6000, stopOnInteraction: false }) as any,
   ]);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
   const [emblaValuesRef, emblaValuesApi] = useEmblaCarousel(
     { loop: true, align: "start" },
-    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+    [Autoplay({ delay: 4000, stopOnInteraction: false }) as any]
   );
   const [selectedValuesIndex, setSelectedValuesIndex] = React.useState(0);
 
@@ -108,7 +108,7 @@ export default function AboutPage() {
 
   const [emblaEthicsRef, emblaEthicsApi] = useEmblaCarousel(
     { loop: true, align: "start" },
-    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+    [Autoplay({ delay: 5000, stopOnInteraction: false }) as any]
   );
   const [selectedEthicsIndex, setSelectedEthicsIndex] = React.useState(0);
 
