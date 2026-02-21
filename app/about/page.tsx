@@ -1,5 +1,10 @@
+"use client";
+
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
+import React, { useEffect } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import {
   Card,
   CardContent,
@@ -44,6 +49,81 @@ export default function AboutPage() {
     },
   ];
 
+  const ethicsData = [
+    {
+      title: "Confidentiality",
+      description:
+        "Your privacy and trust are sacred to us. All sessions and communications are kept strictly confidential.",
+    },
+    {
+      title: "Biblical Foundation",
+      description:
+        "Our approach is grounded in biblical principles while respecting individual faith journeys.",
+    },
+    {
+      title: "Non-judgmental Approach",
+      description:
+        "We provide a safe space free from judgment, where you can be authentic and vulnerable.",
+    },
+    {
+      title: "Excellence & Accountability",
+      description:
+        "We maintain high professional standards and are committed to continuous growth and accountability.",
+    },
+  ];
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
+    Autoplay({ delay: 6000, stopOnInteraction: false }),
+  ]);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+
+  const [emblaValuesRef, emblaValuesApi] = useEmblaCarousel(
+    { loop: true, align: "start" },
+    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+  );
+  const [selectedValuesIndex, setSelectedValuesIndex] = React.useState(0);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaValuesApi) return;
+    const onSelectValues = () =>
+      setSelectedValuesIndex(emblaValuesApi.selectedScrollSnap());
+    emblaValuesApi.on("select", onSelectValues);
+    emblaValuesApi.on("reInit", onSelectValues);
+    return () => {
+      emblaValuesApi.off("select", onSelectValues);
+      emblaValuesApi.off("reInit", onSelectValues);
+    };
+  }, [emblaValuesApi]);
+
+  const [emblaEthicsRef, emblaEthicsApi] = useEmblaCarousel(
+    { loop: true, align: "start" },
+    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+  );
+  const [selectedEthicsIndex, setSelectedEthicsIndex] = React.useState(0);
+
+  useEffect(() => {
+    if (!emblaEthicsApi) return;
+    const onSelectEthics = () =>
+      setSelectedEthicsIndex(emblaEthicsApi.selectedScrollSnap());
+    emblaEthicsApi.on("select", onSelectEthics);
+    emblaEthicsApi.on("reInit", onSelectEthics);
+    return () => {
+      emblaEthicsApi.off("select", onSelectEthics);
+      emblaEthicsApi.off("reInit", onSelectEthics);
+    };
+  }, [emblaEthicsApi]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -61,32 +141,58 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Mission Statement */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-8">
-            Our Mission
-          </h2>
-          <blockquote className="text-xl md:text-2xl text-foreground font-medium text-pretty leading-relaxed border-l-4 border-primary pl-6 italic">
-            "To guide people on a journey of emotional healing and spiritual
-            renewal through the love of Christ, providing compassionate support
-            that addresses both the heart and mind in a safe, nurturing
-            environment."
-          </blockquote>
-        </div>
-      </section>
+      {/* Mission & Vision Slider */}
+      <section className="py-20 bg-muted/30">
+        <div
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center overflow-hidden"
+          ref={emblaRef}
+        >
+          <div className="flex touch-pan-y">
+            {/* Slide 1: Mission */}
+            <div className="flex-[0_0_100%] min-w-0 px-4">
+              <h2 className="text-3xl font-bold text-foreground mb-8">
+                Our Mission
+              </h2>
+              <blockquote className="text-xl md:text-2xl text-foreground font-medium text-pretty leading-relaxed border-l-4 border-primary pl-6 italic">
+                "To guide people on a journey of emotional healing and spiritual
+                renewal through the love of Christ, providing compassionate
+                support that addresses both the heart and mind in a safe,
+                nurturing environment."
+              </blockquote>
+            </div>
 
-      {/* Vision */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-8">
-            Our Vision
-          </h2>
-          <blockquote className="text-xl md:text-2xl text-foreground font-medium text-pretty leading-relaxed border-l-4 border-accent pl-6 italic">
-            "To see a generation emotionally whole, spiritually strong, and free
-            from the grip of past wounds, walking confidently in their God-given
-            purpose and experiencing the abundant life Christ promised."
-          </blockquote>
+            {/* Slide 2: Vision */}
+            <div className="flex-[0_0_100%] min-w-0 px-4">
+              <h2 className="text-3xl font-bold text-foreground mb-8">
+                Our Vision
+              </h2>
+              <blockquote className="text-xl md:text-2xl text-foreground font-medium text-pretty leading-relaxed border-l-4 border-accent pl-6 italic">
+                "To see a generation emotionally whole, spiritually strong, and
+                free from the grip of past wounds, walking confidently in their
+                God-given purpose and experiencing the abundant life Christ
+                promised."
+              </blockquote>
+            </div>
+          </div>
+
+          {/* Slider Indicators */}
+          <div className="flex justify-center gap-2 mt-12">
+            {[0, 1].map((index) => (
+              <button
+                key={index}
+                onClick={() => emblaApi?.scrollTo(index)}
+                className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                  index === selectedIndex
+                    ? "bg-primary scale-125"
+                    : "bg-primary/20 hover:bg-primary/40"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground w-full mt-4 text-center">
+            Swipe to read more
+          </p>
         </div>
       </section>
 
@@ -103,80 +209,95 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {coreValues.map((value, index) => (
-              <Card
+          <div className="overflow-hidden pb-8" ref={emblaValuesRef}>
+            <div className="flex touch-pan-y -ml-4">
+              {coreValues.map((value, index) => (
+                <div
+                  key={index}
+                  className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 pl-4 py-4"
+                >
+                  <Card className="h-full hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-primary">
+                        {value.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-muted-foreground leading-relaxed">
+                        {value.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Core Values Slider Indicators */}
+          <div className="flex justify-center gap-2 mt-2">
+            {coreValues.map((_, index) => (
+              <button
                 key={index}
-                className="h-full hover:shadow-lg transition-shadow"
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg text-primary">
-                    {value.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-muted-foreground leading-relaxed">
-                    {value.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
+                onClick={() => emblaValuesApi?.scrollTo(index)}
+                className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                  index === selectedValuesIndex
+                    ? "bg-primary scale-125"
+                    : "bg-primary/20 hover:bg-primary/40"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Ethics */}
+      {/* Ethics Slider */}
       <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-8 mb-12">
             <h2 className="text-3xl font-bold text-foreground">Our Ethics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-primary">
-                  Confidentiality
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Your privacy and trust are sacred to us. All sessions and
-                  communications are kept strictly confidential.
-                </p>
-              </div>
+          </div>
 
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-primary">
-                  Biblical Foundation
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Our approach is grounded in biblical principles while
-                  respecting individual faith journeys.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-primary">
-                  Non-judgmental Approach
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  We provide a safe space free from judgment, where you can be
-                  authentic and vulnerable.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-primary">
-                  Excellence & Accountability
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  We maintain high professional standards and are committed to
-                  continuous growth and accountability.
-                </p>
-              </div>
+          <div className="overflow-hidden pb-8" ref={emblaEthicsRef}>
+            <div className="flex touch-pan-y -ml-4">
+              {ethicsData.map((ethic, index) => (
+                <div
+                  key={index}
+                  className="flex-[0_0_100%] sm:flex-[0_0_50%] min-w-0 pl-4 py-4"
+                >
+                  <div className="bg-muted/10 p-8 rounded-2xl h-full border border-border/50 hover:shadow-lg transition-shadow">
+                    <h3 className="text-xl font-semibold text-primary mb-4">
+                      {ethic.title}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed text-base">
+                      {ethic.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="pt-8">
-              <Button asChild size="lg">
-                <Link href="/contact">Begin Your Healing Journey</Link>
-              </Button>
-            </div>
+          {/* Ethics Slider Indicators */}
+          <div className="flex justify-center gap-2 mt-2 mb-12">
+            {ethicsData.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => emblaEthicsApi?.scrollTo(index)}
+                className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                  index === selectedEthicsIndex
+                    ? "bg-primary scale-125"
+                    : "bg-primary/20 hover:bg-primary/40"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="text-center pt-8">
+            <Button asChild size="lg" className="px-8 py-6 text-lg">
+              <Link href="/contact">Begin Your Healing Journey</Link>
+            </Button>
           </div>
         </div>
       </section>
