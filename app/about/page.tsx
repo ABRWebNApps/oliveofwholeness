@@ -129,12 +129,31 @@ export default function AboutPage() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-secondary/20 to-background py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 text-balance">
+      <section className="relative py-24 overflow-hidden bg-background">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse-slow opacity-60"></div>
+        <div
+          className="absolute -bottom-24 -right-24 w-[30rem] h-[30rem] bg-secondary/20 rounded-full blur-3xl animate-pulse-slow opacity-60"
+          style={{ animationDelay: "2s" }}
+        ></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-64 bg-accent/10 rounded-[100%] blur-3xl animate-float opacity-50"></div>
+
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center justify-center px-4 py-1.5 mb-6 text-sm font-medium rounded-full bg-primary/10 text-primary animate-fade-in">
+            <span className="relative flex h-2 w-2 mr-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            Our Story
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-foreground to-secondary bg-clip-text text-transparent mb-6 text-balance animate-fade-in-up">
             About Olive of Wholeness
           </h1>
-          <p className="text-xl text-muted-foreground text-pretty leading-relaxed">
+          <p
+            className="text-xl md:text-2xl text-muted-foreground text-pretty leading-relaxed max-w-2xl mx-auto animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
             Discover our heart for healing and our commitment to walking
             alongside you on your journey to wholeness.
           </p>
