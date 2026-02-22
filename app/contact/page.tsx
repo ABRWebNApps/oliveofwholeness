@@ -5,6 +5,7 @@ import type React from "react";
 import { useState } from "react";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,6 +29,8 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const supabase = createClient();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -39,18 +42,30 @@ export default function ContactPage() {
       return;
     }
 
-    // Simulate form submission
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Insert the contact form submission into the database
+      const { error: insertError } = await supabase
+        .from("help_requests")
+        .insert({
+          name,
+          email,
+          message,
+          consent_given: consent,
+          status: "new",
+        });
+
+      if (insertError) throw insertError;
 
       setIsSubmitted(true);
       setName("");
       setEmail("");
       setMessage("");
       setConsent(false);
-    } catch (error: unknown) {
+    } catch (error: any) {
+      console.error("Form submission error:", error);
       setError(
-        "An error occurred. Please try again or contact us directly via email."
+        error.message ||
+          "An error occurred. Please try again or contact us directly via email."
       );
     } finally {
       setIsLoading(false);
