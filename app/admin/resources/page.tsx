@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import { Plus, Edit, BookOpen } from "lucide-react";
+import { DeleteButton } from "@/components/admin/delete-button";
 
 export default async function AdminResourcesPage() {
   const supabase = await createClient();
@@ -58,13 +59,11 @@ export default async function AdminResourcesPage() {
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DeleteButton
+                        table="resources"
+                        id={resource.id}
+                        title={resource.title}
+                      />
                     </div>
                   </div>
                   <CardTitle className="text-lg">{resource.title}</CardTitle>

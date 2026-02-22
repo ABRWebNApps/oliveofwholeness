@@ -34,60 +34,23 @@ export default async function CommunityPage({
   const supabase = await createClient();
 
   // Get total counts for pagination
-  const [communityCountResult, resourcesCountResult] = await Promise.all([
-    supabase
-      .from("community_feed")
-      .select("*", { count: "exact", head: true })
-      .eq("published", true),
-    supabase
-      .from("resources")
-      .select("*", { count: "exact", head: true })
-      .eq("published", true),
-  ]);
+  const { count: totalCommunityPosts } = await supabase
+    .from("community_feed")
+    .select("*", { count: "exact", head: true })
+    .eq("published", true);
 
-  const totalCommunityPosts = communityCountResult.count || 0;
-  const totalResources = resourcesCountResult.count || 0;
-  const totalPosts = totalCommunityPosts + totalResources;
+  const totalPosts = totalCommunityPosts || 0;
   const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
 
-  // Fetch all posts for sorting, then slice for pagination
-  // This approach ensures proper chronological ordering across both tables
-  const [communityResult, resourcesResult] = await Promise.all([
-    supabase
-      .from("community_feed")
-      .select("*")
-      .eq("published", true)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("resources")
-      .select("*")
-      .eq("published", true)
-      .order("created_at", { ascending: false }),
-  ]);
+  // Fetch paginated community posts directly
+  const { data: fetchResult } = await supabase
+    .from("community_feed")
+    .select("*")
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + POSTS_PER_PAGE - 1);
 
-  // Combine and sort all posts
-  const allPosts = [
-    ...(communityResult.data || []).map((post) => ({
-      ...post,
-      type: "community",
-    })),
-    ...(resourcesResult.data || []).map((resource) => ({
-      id: resource.id,
-      title: resource.title,
-      content: resource.content,
-      created_at: resource.created_at,
-      image_url: null,
-      link_url: `/resources/${resource.id}`,
-      type: "resource",
-      category: resource.category,
-    })),
-  ].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
-  // Paginate the sorted posts
-  const paginatedPosts = allPosts.slice(offset, offset + POSTS_PER_PAGE);
+  const paginatedPosts = fetchResult || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,22 +100,13 @@ export default async function CommunityPage({
           </div>
 
           <div className="grid gap-8">
-            {paginatedPosts.length > 0 ? (
+            {paginatedPosts && paginatedPosts.length > 0 ? (
               paginatedPosts.map((post) => (
                 <Card
-                  key={`${post.type}-${post.id}`}
-                  className={`hover:shadow-lg transition-shadow ${
-                    post.type === "community" ? "cursor-pointer" : ""
-                  }`}
+                  key={post.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
                 >
-                  <Link
-                    href={
-                      post.type === "community"
-                        ? `/community/${post.id}`
-                        : post.link_url
-                    }
-                    className="block"
-                  >
+                  <Link href={`/community/${post.id}`} className="block">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -160,12 +114,6 @@ export default async function CommunityPage({
                             <CardTitle className="text-xl">
                               {post.title}
                             </CardTitle>
-                            {post.type === "resource" && (
-                              <Badge variant="secondary" className="ml-2">
-                                <BookOpen className="h-3 w-3 mr-1" />
-                                {post.category}
-                              </Badge>
-                            )}
                           </div>
                           <CardDescription className="flex items-center text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4 mr-1" />
@@ -201,17 +149,10 @@ export default async function CommunityPage({
                             </p>
                           </div>
                           <div className="mt-4">
-                            {post.type === "community" ? (
-                              <span className="text-primary hover:text-primary/80 inline-flex items-center">
-                                Read More
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                              </span>
-                            ) : (
-                              <span className="text-primary hover:text-primary/80 inline-flex items-center">
-                                <BookOpen className="h-4 w-4 mr-2" />
-                                View Resource
-                              </span>
-                            )}
+                            <span className="text-primary hover:text-primary/80 inline-flex items-center">
+                              Read More
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </span>
                           </div>
                         </div>
                       </div>

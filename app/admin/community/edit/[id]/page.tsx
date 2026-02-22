@@ -104,13 +104,6 @@ export default function EditCommunityPostPage({
     setError(null);
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user)
-        throw new Error("You must be logged in to edit posts");
-
       let finalImageUrl = imageUrl;
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile);

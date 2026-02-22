@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { Plus, Edit, Users } from "lucide-react";
+import { DeleteButton } from "@/components/admin/delete-button";
 
 export default async function AdminCommunityPage() {
   const supabase = await createClient();
@@ -61,13 +62,11 @@ export default async function AdminCommunityPage() {
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DeleteButton
+                        table="community_feed"
+                        id={post.id}
+                        title={post.title}
+                      />
                     </div>
                   </div>
                 </CardHeader>
