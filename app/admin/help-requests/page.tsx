@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -9,15 +11,26 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Clock, CheckCircle } from "lucide-react";
+import { Mail, Clock, CheckCircle, Loader2 } from "lucide-react";
 
-export default async function AdminHelpRequestsPage() {
-  const supabase = await createClient();
+export default function AdminHelpRequestsPage() {
+  const [helpRequests, setHelpRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: helpRequests } = await supabase
-    .from("help_requests")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchRequests() {
+      const { data } = await supabase
+        .from("help_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setHelpRequests(data || []);
+      setIsLoading(false);
+    }
+    fetchRequests();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -57,7 +70,11 @@ export default async function AdminHelpRequestsPage() {
           </p>
         </div>
 
-        {helpRequests && helpRequests.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : helpRequests && helpRequests.length > 0 ? (
           <div className="space-y-6">
             {helpRequests.map((request) => (
               <Card
