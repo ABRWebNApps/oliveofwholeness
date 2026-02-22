@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { BookOpen, Search } from "lucide-react";
+import { BookOpen, Search, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 // Define the Resource type
 type Resource = {
@@ -164,9 +165,13 @@ export default function ResourcesPage() {
                                   : resource.content)}
                             </p>
                             <div className="space-y-2 mt-auto">
-                              <button className="text-primary hover:text-primary/80 font-medium text-sm">
-                                Read More →
-                              </button>
+                              <Link
+                                href={`/resources/${resource.id}`}
+                                className="text-primary hover:text-primary/80 font-medium text-sm inline-flex items-center"
+                              >
+                                Read More{" "}
+                                <ArrowRight className="ml-1 h-4 w-4" />
+                              </Link>
                               {resource.resource_url && (
                                 <a
                                   href={resource.resource_url}

@@ -77,7 +77,7 @@ export default async function CommunityPage({
       content: resource.content,
       created_at: resource.created_at,
       image_url: null,
-      link_url: `/resources#${resource.category.toLowerCase().replace(/ /g, "-")}`,
+      link_url: `/resources/${resource.id}`,
       type: "resource",
       category: resource.category,
     })),
@@ -104,7 +104,7 @@ export default async function CommunityPage({
           gtag('config', 'G-RGDCYJNXRJ');
         `}
       </Script>
-      
+
       <Navigation />
 
       {/* Hero Section */}
