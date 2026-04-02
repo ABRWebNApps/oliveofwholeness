@@ -53,6 +53,18 @@ export function Footer() {
               >
                 Community Feed
               </Link>
+              <Link
+                href="/privacy"
+                className="block text-muted-foreground hover:text-primary transition-colors text-sm"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/cookie-policy"
+                className="block text-muted-foreground hover:text-primary transition-colors text-sm"
+              >
+                Cookie Policy
+              </Link>
             </div>
           </div>
 
@@ -147,10 +159,9 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-8 text-center">
+        <div className="border-t border-border mt-8 pt-8 text-center flex flex-col items-center gap-2">
           <p className="text-muted-foreground text-sm">
-            © 2024 Olives of Wholeness. All rights reserved. | Confidential
-            therapy services in line with our ethics.
+            © 2026 Olives of Wholeness. All rights reserved. | Confidential therapy services in line with our ethics.
           </p>
         </div>
       </div>
