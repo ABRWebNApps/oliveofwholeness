@@ -259,6 +259,10 @@ export default function AvailabilitySettings() {
                   selected={selectedDate}
                   onSelect={handleDateSelect}
                   className="rounded-2xl border p-4"
+                  classNames={{
+                    outside:
+                      "text-foreground/70 opacity-100 aria-selected:bg-accent/30 aria-selected:text-foreground",
+                  }}
                   modifiers={{
                     available: (date) =>
                       availableDateStrings.has(format(date, "yyyy-MM-dd")),

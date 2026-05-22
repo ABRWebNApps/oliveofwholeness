@@ -17,6 +17,7 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
+      fixedWeeks
       showOutsideDays={showOutsideDays}
       className={cn("p-4", className)}
       classNames={{
@@ -33,12 +34,12 @@ function Calendar({
           buttonVariants({ variant: "outline" }),
           "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity absolute right-2 z-10"
         ),
-        month_grid: "w-full border-collapse space-y-1",
-        weekdays: "flex",
+        month_grid: "w-full table-fixed border-collapse",
+        weekdays: "",
         weekday:
-          "text-muted-foreground rounded-md w-12 font-medium text-[0.85rem] uppercase tracking-wider",
-        week: "flex w-full mt-2",
-        day: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
+          "text-muted-foreground h-12 w-12 rounded-md font-medium text-[0.85rem] uppercase tracking-wider",
+        week: "",
+        day: "h-12 w-12 p-0 text-center align-middle text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
         day_button: cn(
           buttonVariants({ variant: "ghost" }),
           "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary transition-colors rounded-xl"
