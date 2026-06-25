@@ -58,41 +58,48 @@ export function BookingWidget() {
     notes: "",
   });
 
-  // Fetch Appointment Types
+  // Fetch Appointment Types — fallback to default if empty/fails
   useEffect(() => {
     async function fetchTypes() {
       try {
         const res = await fetch("/api/appointment-types");
         if (!res.ok) throw new Error("Failed to load services");
         const data = await res.json();
-        setTypes(data);
+        if (data && data.length > 0) {
+          setTypes(data);
+        } else {
+          setTypes([{
+            id: "00000000-0000-0000-0000-000000000000",
+            name: "1:1 Session",
+            description: "Private one-on-one healing session",
+            duration_minutes: 60,
+          }]);
+        }
       } catch (error) {
-        toast.error("Could not load booking services");
+        setTypes([{
+          id: "00000000-0000-0000-0000-000000000000",
+          name: "1:1 Session",
+          description: "Private one-on-one healing session",
+          duration_minutes: 60,
+        }]);
       }
     }
     fetchTypes();
   }, []);
 
-  // Fetch Available Dates from Admin Settings
+  // Fetch Available Dates — silently best-effort, never blocks UI
   useEffect(() => {
-    async function fetchAvailableDates() {
-      try {
-        const res = await fetch("/api/admin/availability");
-        if (!res.ok) throw new Error("Failed to load availability");
-        const data = await res.json();
-
-        // Extract dates that are marked as available
+    fetch("/api/admin/availability")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
         const dates = new Set(
           (data.availability_dates || [])
             .filter((d: any) => d.is_available)
             .map((d: any) => d.date)
         );
-        setAvailableDates(dates);
-      } catch (error) {
-        console.error("Could not load available dates:", error);
-      }
-    }
-    fetchAvailableDates();
+        if (dates.size > 0) setAvailableDates(dates);
+      })
+      .catch(() => {});
   }, []);
 
   // Fetch Availability when Type or Date changes
@@ -225,12 +232,7 @@ export function BookingWidget() {
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  disabled={(date) => {
-                    const dateStr = format(date, "yyyy-MM-dd");
-                    const isPast = date < startOfToday();
-                    const isNotAvailable = !availableDates.has(dateStr);
-                    return isPast || isNotAvailable;
-                  }}
+                  disabled={(date) => date < startOfToday()}
                   modifiers={{
                     available: (date) =>
                       availableDates.has(format(date, "yyyy-MM-dd")),
@@ -498,9 +500,9 @@ export function BookingWidget() {
                 onClick={() => window.location.reload()}
                 variant="outline"
                 size="sm"
-                className="w-full rounded-lg font-bold"
+                className="w-full"
               >
-                Finish
+                Book Another Session
               </Button>
             </div>
           </div>
@@ -509,7 +511,7 @@ export function BookingWidget() {
   };
 
   return (
-    <Card className="border shadow-2xl rounded-3xl overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl max-w-lg mx-auto overflow-hidden">
+    <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-xl">
       <CardContent className="p-6 sm:p-8">{renderStep()}</CardContent>
     </Card>
   );

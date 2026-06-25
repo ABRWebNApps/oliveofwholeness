@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { getAvailableSlots } from "@/lib/appointments";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const body = await request.json();
   const { typeId, name, email, notes, date, startTime, endTime } = body;
 

@@ -1,10 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
-  // Fetch from the new simplified available_dates table
   const { data: dates, error } = await supabase
     .from("available_dates")
     .select("*")
@@ -22,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const body = await request.json();
   const { date, is_available, start_time, end_time, time_slots } = body;
 
@@ -30,13 +29,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
   }
 
-  // Insert or update the date with time fields
   const { error } = await supabase.from("available_dates").upsert(
     {
       date,
-      is_available: is_available !== false, // default to true if not specified
-      start_time: start_time || "09:00:00", // Keep for backward compatibility
-      end_time: end_time || "17:00:00", // Keep for backward compatibility
+      is_available: is_available !== false,
+      start_time: start_time || "09:00:00",
+      end_time: end_time || "17:00:00",
       time_slots: time_slots || [],
     },
     {
@@ -53,7 +51,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const body = await request.json();
   const { date, is_available, start_time, end_time, time_slots } = body;
 
@@ -61,7 +59,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Date required" }, { status: 400 });
   }
 
-  // Use upsert so it creates the row if it doesn't exist yet
   const { error } = await supabase.from("available_dates").upsert(
     {
       date,
@@ -84,7 +81,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 

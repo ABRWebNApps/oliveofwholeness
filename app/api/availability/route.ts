@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { getAvailableSlots } from "@/lib/appointments";
 

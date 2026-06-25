@@ -160,7 +160,13 @@ export default function AdminLoginPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
-            </form>
+</form>
+
+            <div className="mt-6 text-center space-y-2">
+              <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
+                ← Back to Website
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

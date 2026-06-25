@@ -59,11 +59,17 @@ export function Footer() {
               >
                 Privacy Policy
               </Link>
-              <Link
+<Link
                 href="/cookie-policy"
                 className="block text-muted-foreground hover:text-primary transition-colors text-sm"
               >
                 Cookie Policy
+              </Link>
+              <Link
+                href="/admin/login"
+                className="block text-muted-foreground hover:text-primary transition-colors text-sm"
+              >
+                Admin Login
               </Link>
             </div>
           </div>
