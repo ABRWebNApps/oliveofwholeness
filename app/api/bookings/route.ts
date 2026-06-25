@@ -1,6 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { getAvailableSlots } from "@/lib/appointments";
+import { sendAppointmentStatusEmail } from "@/lib/email";
+import { format } from "date-fns";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const supabase = await createAdminClient();
@@ -14,7 +18,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. Double check availability (prevent race conditions/late entries)
   try {
     const availableSlots = await getAvailableSlots(date, typeId);
     const isStillAvailable = availableSlots.some(
@@ -28,7 +31,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Create the appointment
     const { data, error } = await supabase
       .from("appointments")
       .insert([
@@ -43,10 +45,24 @@ export async function POST(request: Request) {
           status: "pending",
         },
       ])
-      .select()
+      .select("*, appointment_types(name)")
       .single();
 
     if (error) throw error;
+
+    // Send confirmation email
+    if (email && email.includes("@")) {
+      const dateFormatted = format(new Date(date), "MMMM d, yyyy");
+      const timeFormatted = startTime.substring(0, 5);
+      sendAppointmentStatusEmail(
+        email,
+        name,
+        dateFormatted,
+        timeFormatted,
+        data?.appointment_types?.name || "Service",
+        "confirmed"
+      ).catch((e) => console.error("Email send failed:", e));
+    }
 
     return NextResponse.json(data);
   } catch (error: any) {

@@ -1,11 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { sendAppointmentStatusEmail } from "@/lib/email";
 import { format } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 // List all appointments
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from("appointments")
     .select("*, appointment_types(name)")
@@ -21,7 +23,7 @@ export async function GET() {
 
 // Update appointment status
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const body = await request.json();
   const { id, status } = body;
 
@@ -32,7 +34,6 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // Update status and fetch appointment details including customer email and type name
   const { data, error } = await supabase
     .from("appointments")
     .update({ status })
@@ -44,13 +45,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Send email if status is confirmed or cancelled
   if (status === "confirmed" || status === "cancelled") {
-    // We don't want to block the response if email fails, so we don't await this or handle error here tightly
-    // In production, a queue would be better.
-    console.log(`Sending email for appointment ${id} with status ${status}`);
-    console.log(`Recipient email: ${data.customer_email}`);
-
     if (!data.customer_email || !data.customer_email.includes("@")) {
       console.error("Invalid or missing customer email. Skipping email send.");
     } else {
@@ -67,7 +62,7 @@ export async function PATCH(request: Request) {
           dateFormatted,
           timeFormatted,
           data.appointment_types?.name || "Service",
-          status
+          status as "confirmed" | "cancelled"
         );
       } catch (emailError) {
         console.error("Failed to send status email:", emailError);
