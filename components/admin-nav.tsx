@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard" },
   { name: "Bookings", href: "/admin/bookings" },
+  { name: "Messages", href: "/admin/messages" },
   { name: "Availability", href: "/admin/availability" },
   { name: "Resources", href: "/admin/resources" },
   { name: "Posts", href: "/admin/posts" },
